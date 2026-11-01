@@ -1,0 +1,116 @@
+{
+  "tools": [
+    {
+      "name": "bettergi_status",
+      "description": "Report whether BetterGI is running, whether this process is elevated, where the exe and user dir are, how many config groups exist, and whether the game is running.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "tags": [
+        "read"
+      ],
+      "summary": {
+        "zh": "报 BetterGI 是否在跑、当前进程有没有提权、程序与用户目录在哪、配置组几个、游戏在不在。",
+        "en": "Reports whether BetterGI and the game are running, elevation state, paths and config counts."
+      }
+    },
+    {
+      "name": "bettergi_list",
+      "description": "List the scheduler config group names and the one-dragon config names found under the user dir, with their file times. Use it before bettergi_run so the names are real.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "tags": [
+        "read"
+      ],
+      "summary": {
+        "zh": "列出调度器配置组名与一条龙配置名，供启动命令直接引用。",
+        "en": "Lists scheduler config group names and one-dragon config names."
+      }
+    },
+    {
+      "name": "bettergi_run",
+      "description": "Launch BetterGI, or hand it a command: `start`, `oneDragon` (optionally with a config name), or `groups` (a list of scheduler config group names, run in order). Returns the exact command line, the PID, and how it was elevated.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "start",
+              "oneDragon",
+              "groups"
+            ],
+            "description": "start = just launch; oneDragon = run the one-dragon flow; groups = run scheduler config groups."
+          },
+          "configName": {
+            "type": "string",
+            "description": "One-dragon config name (mode=oneDragon). Omit to use the one selected in the UI."
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Scheduler config group names, executed in this order (mode=groups)."
+          },
+          "dryRun": {
+            "type": "boolean",
+            "description": "Only show the command line that would run, do not launch anything."
+          },
+          "force": {
+            "type": "boolean",
+            "description": "Skip the name check for scheduler groups. Only when you are sure the name exists but is not on disk yet."
+          },
+          "restartIfRunning": {
+            "type": "boolean",
+            "description": "When BetterGI is already running: stop it first, then launch with the arguments. Defaults to false."
+          }
+        },
+        "required": [
+          "mode"
+        ]
+      },
+      "tags": [
+        "act"
+      ],
+      "summary": {
+        "zh": "启动 BetterGI 或把指令交给它：start / oneDragon / groups（按序跑配置组）。",
+        "en": "Launches BetterGI or hands it a command: start, oneDragon, or groups."
+      }
+    },
+    {
+      "name": "bettergi_stop",
+      "description": "Ask BetterGI to close (graceful) and force-kill it if it does not exit within the configured grace period. Refuses when allowStop is off.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "tags": [
+        "act"
+      ],
+      "summary": {
+        "zh": "先礼后兵地结束 BetterGI：优雅关闭，超时才强杀。",
+        "en": "Closes BetterGI gracefully and force-kills it only after the grace period."
+      }
+    }
+  ],
+  "events": [],
+  "prompts": [
+    {
+      "key": "worlds.bettergi.envPrompt",
+      "title": "BetterGI · 环境提示词",
+      "role": "envPrompt",
+      "content": "BetterGI（更好的原神）装在这台电脑上：{{bettergi.exe}}，用户数据目录 {{bettergi.userDir}}，启动后最多等 {{bettergi.launchSec}} 秒进程出现；结束进程的权限：{{bettergi.canStop}}。\n\n你能做的是「把它推起来、把指令交给它」这三件事：`start`（只是启动）、`oneDragon`（跑一条龙，可指定配置名）、`groups`（按顺序跑调度器配置组）。参数直接传给 exe，不需要走 cmd。它没有可以查询任务进度、逐项开关功能的接口——任务跑到哪、有没有卡住，只能看它界面里的日志，你看不到就别编。\n\n名字必须是真实存在的：调度器配置组名来自 `User\\ScriptGroup\\<名字>.json`，一条龙配置名来自 `User\\OneDragon\\<名字>.json`，都是**文件名去掉 .json**。要用 groups 之前先调 `bettergi_list` 拿名字，别按印象拼；拼错的组名会让调度器静默什么都不做——所以工具会先校验，不存在就拦住并把现有名字列给你。\n\n它是单实例的：已经在跑的时候再启动一个不会执行你的参数。这时候：`start` 和「不带配置名的一条龙」可以走 `bettergi://` 协议交给在跑的实例；带配置名的任务和 `--startGroups` 没有协议版本，只能先关再起（`restartIfRunning`）或在关掉后重发。\n\n权限是硬前提：BetterGI 要管理员权限才能模拟键鼠。当前进程没提权时，工具会用 UAC 提权拉起；UAC 被点掉的话进程不会出现，回执会说「没看到进程起来」——这种时候别反复重试，先把弹窗处理掉，或者请用户以管理员身份开 Coopanion。\n\n这些动作会在游戏里真的发生：跑调度器可能消耗体力、动背包、上下线。要跑什么、什么时候跑，由用户决定；你只负责把指令发对、把结果如实报回来。启动前先 `bettergi_status` 看一眼进程和游戏在不在，比盲发一条命令靠谱。\n\n回执先看第一行的「状态」：ok（做到了）、failed（试了但没成，带原因）、blocked（没发出去，比如名字不存在或已在运行且没有协议版本）。命令原文、cwd、提权方式都在回执里，回答用户时按回执说，不要替它推断任务是否成功。\n"
+    }
+  ]
+}

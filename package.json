@@ -1,0 +1,46 @@
+{
+  "name": "cortico-world-bettergi",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Cortico World: drive BetterGI (更好的原神) from the command line — launch it, run a one-dragon config or scheduler groups, and report process state back to the agent.",
+  "license": "MIT",
+  "author": "龚子昂",
+  "keywords": [
+    "cortico-world",
+    "cortico",
+    "bettergi",
+    "genshin",
+    "cli",
+    "automation"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@12.15.0",
+  "main": "./src/index.ts",
+  "cortico": {
+    "kind": "world",
+    "api": 6,
+    "displayName": "BetterGI",
+    "tags": [],
+    "describe": "describe.json"
+  },
+  "files": [
+    "src",
+    "docs",
+    "README.md",
+    "CHANGELOG.md",
+    "describe.json"
+  ],
+  "scripts": {
+    "test": "vitest run --no-file-parallelism",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "cortico": "^0.2.6",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

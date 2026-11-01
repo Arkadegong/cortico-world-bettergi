@@ -1,0 +1,7 @@
+node_modules/
+dist/
+*.log
+
+# 本机开发产物与镜像源配置，不进版本控制
+.npmrc
+.vitest/
